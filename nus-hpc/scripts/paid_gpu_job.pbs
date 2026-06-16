@@ -1,0 +1,32 @@
+#!/bin/bash
+# PAID A40 GPU job for NUS Vanda — bills your PERSONAL GPU-Hours allocation.
+# Submit with:  dos2unix paid_gpu_job.pbs && qsub -q auto paid_gpu_job.pbs
+#
+# ⚠ ONLY use your OWN personal project. NEVER bill a shared/team project
+#   (e.g. CFP04-CF-039). Replace the id below with your own personal-<nusnet-id>.
+#
+#PBS -N myjob
+#PBS -q batch_gpu                       # actual submit via `qsub -q auto`
+#PBS -P personal-e0900742              # <-- your OWN allocation only (edit to yours)
+#PBS -l select=1:ncpus=16:ngpus=1:mem=64gb
+#PBS -l walltime=72:00:00              # paid allows up to 168h (free caps at 48h)
+#PBS -j oe
+#PBS -o myjob.log
+# For both A40s on a node, use instead:
+#   #PBS -l select=1:ncpus=32:ngpus=2:mem=128gb
+
+set -e
+cd "$PBS_O_WORKDIR" || cd "$HOME"
+echo "==== node: $(hostname)  start: $(date)  project: personal-e0900742 ===="
+
+module load Miniconda3                 # verify exact name with `module avail`
+PY="$HOME/myenv/bin/python"            # env created on the login node
+
+nvidia-smi --query-gpu=name,memory.total --format=csv
+
+# -u keeps stdout unbuffered so the .log streams in real time.
+"$PY" -u train.py --your-args-here 2>&1
+
+echo "==== done: $(date) ===="
+# Billed GPU-Hours ≈ ngpus × resources_used.walltime. Check after with:
+#   qstat -xf <jobid> | grep -i resources_used
