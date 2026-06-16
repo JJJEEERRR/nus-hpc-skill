@@ -1,0 +1,26 @@
+#!/bin/bash
+# Generic A40 GPU job for NUS Vanda (free queue).
+# Submit with:  dos2unix gpu_job.pbs && qsub -q auto_free gpu_job.pbs
+#
+#PBS -N myjob
+#PBS -q gpu
+#PBS -l select=1:ncpus=16:ngpus=1:mem=64gb
+#PBS -l walltime=03:00:00
+#PBS -j oe
+#PBS -o myjob.log
+# For both A40s on a node, use instead:
+#   #PBS -l select=1:ncpus=32:ngpus=2:mem=128gb
+
+set -e
+cd "$PBS_O_WORKDIR" || cd "$HOME"
+echo "==== node: $(hostname)  start: $(date) ===="
+
+module load Miniconda3                 # verify exact name with `module avail`
+PY="$HOME/myenv/bin/python"            # env created on the login node
+
+nvidia-smi --query-gpu=name,memory.total --format=csv
+
+# -u keeps stdout unbuffered so the .log streams in real time.
+"$PY" -u train.py --your-args-here 2>&1
+
+echo "==== done: $(date) ===="
